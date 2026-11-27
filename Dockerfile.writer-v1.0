@@ -1,0 +1,16 @@
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements-writer.txt .
+
+RUN pip install --no-cache-dir -r requirements-writer.txt
+
+COPY --chmod=0444 scripts/save_xlsx_extraction.py /app/save_xlsx_extraction.py
+
+USER 10001:10001
+
+ENTRYPOINT ["python", "/app/save_xlsx_extraction.py"]

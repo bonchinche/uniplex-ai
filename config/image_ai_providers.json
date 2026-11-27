@@ -1,0 +1,34 @@
+{
+  "config_version": "1.0",
+  "default_provider": "mock",
+  "providers": {
+    "mock": {
+      "enabled": true,
+      "adapter": "image_ai.providers.mock_provider.MockProvider",
+      "model": "mock-provider",
+      "model_version": "1.0",
+      "max_image_bytes": 26214400,
+      "timeout_seconds": 30,
+      "generation": {
+        "temperature": 0,
+        "max_output_tokens": 2048
+      }
+    },
+    "deepseek": {
+      "enabled": true,
+      "adapter": "image_ai.providers.deepseek_provider.DeepSeekProvider",
+      "model": "deepseek-flash",
+      "model_version": null,
+      "max_image_bytes": 26214400,
+      "timeout_seconds": 90,
+      "generation": {
+        "temperature": 0,
+        "max_output_tokens": 4096
+      }
+    }
+  },
+  "routing": {
+    "strategy": "single",
+    "fallback_enabled": false
+  }
+}

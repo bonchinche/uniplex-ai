@@ -1,0 +1,38 @@
+services:
+  mail-worker:
+    image: uniplex-mail-worker:1.2
+    container_name: uniplex-mail-worker
+    restart: unless-stopped
+    init: true
+    user: "1000:1000"
+    read_only: true
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 64
+    stop_grace_period: 30s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /opt/uniplex/.db-writer.env:/run/secrets/uniplex.env:ro
+      - /opt/uniplex/.mail.env:/run/secrets/mail.env:ro
+      - /opt/uniplex/data/mail/tmp:/data/mail/tmp:rw
+    networks:
+      - database
+      - egress
+    command:
+      - --poll-seconds
+      - "10"
+      - --lease-seconds
+      - "180"
+      - --heartbeat-seconds
+      - "30"
+
+networks:
+  database:
+    external: true
+    name: uniplex_database
+  egress:
+    name: uniplex_worker_egress
+    driver: bridge

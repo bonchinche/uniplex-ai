@@ -1,0 +1,12 @@
+.env
+.mail.env
+*.env
+config/
+data/
+backups/
+logs/
+.git/
+__pycache__/
+*.pyc
+*.dump
+*.sql

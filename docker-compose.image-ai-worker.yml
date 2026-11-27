@@ -1,0 +1,39 @@
+services:
+  image-ai-worker:
+    image: uniplex-image-ai-worker:1.4
+    container_name: uniplex-image-ai-worker
+    restart: unless-stopped
+    init: true
+    user: "1000:1000"
+    read_only: true
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 64
+    stop_grace_period: 60s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    volumes:
+      - /opt/uniplex/.db-writer.env:/run/secrets/uniplex.env:ro
+      - /opt/uniplex/.ai-provider.env:/run/secrets/deepseek.env:ro
+      - /opt/uniplex/data/mail/tmp:/data/mail/tmp:ro
+      - /opt/uniplex/config/image_ai_providers.json:/opt/uniplex/config/image_ai_providers.json:ro
+      - /opt/uniplex/config/image_analysis_input_contract_v1.json:/opt/uniplex/config/image_analysis_input_contract_v1.json:ro
+      - /opt/uniplex/config/image_analysis_contract_v1.json:/opt/uniplex/config/image_analysis_contract_v1.json:ro
+    networks:
+      - database
+      - egress
+    command:
+      - --poll-seconds
+      - "10"
+
+networks:
+  database:
+    external: true
+    name: uniplex_database
+  egress:
+    external: true
+    name: uniplex_ai_egress

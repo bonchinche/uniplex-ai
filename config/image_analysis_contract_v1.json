@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uniplex.local/schemas/image-analysis/v1.0",
+  "title": "UNIPLEX Image Analysis Contract",
+  "description": "Provider-independent output contract for AI image analysis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "image_summary",
+    "detected_language",
+    "document_classification",
+    "facts",
+    "overall_review",
+    "warnings"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1.0"
+    },
+    "image_summary": {
+      "type": "string"
+    },
+    "document_classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "confidence"
+      ],
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_type",
+          "field_key",
+          "value",
+          "confidence",
+          "source_location",
+          "review_recommendation"
+        ],
+        "properties": {
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "identifier",
+              "date",
+              "quantity",
+              "measurement",
+              "amount",
+              "currency",
+              "entity",
+              "other"
+            ]
+          },
+          "field_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "value": {},
+          "normalized_value": {},
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "source_location": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "coordinate_system": {
+                "const": "normalized_0_1"
+              },
+              "x": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "y": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "width": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "source_text": {
+                "type": "string"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "source_text"
+                ],
+                "properties": {
+                  "source_text": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "coordinate_system",
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ]
+              }
+            ]
+          },
+          "review_recommendation": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "needs_review"
+            ]
+          },
+          "review_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "overall_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recommendation",
+        "reasons"
+      ],
+      "properties": {
+        "recommendation": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "needs_review"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "detected_language": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Detected language code or 'unknown'."
+    }
+  }
+}

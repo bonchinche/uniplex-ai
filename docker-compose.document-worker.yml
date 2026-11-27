@@ -1,0 +1,35 @@
+services:
+  document-worker:
+    image: uniplex-document-worker:1.0
+    container_name: uniplex-document-worker
+    restart: unless-stopped
+    init: true
+    user: "1000:1000"
+    read_only: true
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 64
+    stop_grace_period: 30s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m,mode=1777
+    volumes:
+      - /opt/uniplex/.db-writer.env:/run/secrets/uniplex.env:ro
+      - /opt/uniplex/data/mail/tmp:/data/mail/tmp:ro
+    networks:
+      - database
+    command:
+      - --poll-seconds
+      - "10"
+      - --lease-seconds
+      - "180"
+      - --heartbeat-seconds
+      - "30"
+
+networks:
+  database:
+    external: true
+    name: uniplex_database

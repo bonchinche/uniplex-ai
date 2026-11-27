@@ -1,0 +1,29 @@
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        tesseract-ocr \
+        tesseract-ocr-rus \
+        tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements-document-worker.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY --chmod=0444 scripts/document_queue_worker_v1.0.process_group.py /app/document_queue_worker.py
+COPY --chmod=0444 scripts/process_document.py /app/process_document.py
+COPY --chmod=0444 scripts/document_writer_v1.1.py /app/document_writer.py
+COPY --chmod=0444 scripts/extract_pdf_v1.1.py /app/extract_pdf.py
+COPY --chmod=0444 scripts/extract_xlsx_v1.2.py /app/extract_xlsx.py
+COPY --chmod=0444 scripts/prepare_pdf_payload_v1.1.py /app/prepare_pdf_payload.py
+COPY --chmod=0444 scripts/prepare_xlsx_payload.py /app/prepare_xlsx_payload.py
+
+USER 1000:1000
+
+ENTRYPOINT ["python", "/app/document_queue_worker.py"]
