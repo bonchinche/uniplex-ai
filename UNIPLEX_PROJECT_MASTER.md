@@ -266,3 +266,72 @@ DeepSeek:
 - Главный паспорт проекта создан, его необходимо поддерживать в актуальном состоянии.
 
 Ближайшая задача: продолжить стабилизацию и диагностику AI Worker, затем перейти к единому контракту извлечения бизнес-информации и автоматическому конвейеру обработки писем и документов.
+
+## 2026-11-27 — Technical issue for GPT Work: Document Worker lease and writer transaction
+
+### Context
+During code review of the Git-based Document Worker, a potential concurrency issue was identified between the queue worker heartbeat and the document writer transaction.
+
+Relevant files:
+- `scripts/document_queue_worker_v1.0.process_group.py`
+- `scripts/process_document.py`
+- `scripts/document_writer_v1.1.py`
+
+### Observed implementation
+- The queue worker claims jobs using row locking and a lease token.
+- The worker periodically updates the job heartbeat and lease expiration.
+- The document writer opens a database transaction.
+- At the beginning of that transaction, the writer selects the corresponding `processing_jobs` row using `FOR UPDATE`.
+- The row lock remains held while the writer verifies the source file, inserts the extraction and segments, and updates the attachment.
+- The parent worker heartbeat uses a separate database operation and may be blocked by this row lock.
+
+### Potential failure scenario
+If the writer transaction takes long enough:
+1. The writer holds the `processing_jobs` row lock.
+2. The parent worker heartbeat cannot update the same row.
+3. The lease expiration time may pass while the writer transaction is still running.
+4. The writer may commit the extraction without rechecking lease validity immediately before commit.
+5. The parent worker may fail to record job completion.
+6. The job may later be recovered as expired, even though an extraction for that job has already been saved.
+7. A retry may encounter the writer's duplicate-extraction guard for the same job and attachment.
+
+This is a potential race condition identified by code inspection. It has not yet been reproduced in a controlled concurrency test. Do not describe it as a confirmed production incident.
+
+### Task for GPT Work
+Review the complete queue-worker, process-document and document-writer implementation. Confirm or reject the scenario above using the actual code.
+
+If confirmed, design and implement a safe transaction/lease protocol that:
+- avoids holding the queue-job row lock for the entire document extraction write;
+- validates ownership and lease validity at the appropriate commit boundary;
+- preserves atomicity of extraction, segments and attachment updates;
+- prevents stale workers from committing results after losing ownership;
+- handles heartbeat and job completion without deadlocks or inconsistent states;
+- preserves retry, recovery and duplicate-protection behavior.
+
+Do not apply a superficial change that merely removes `FOR UPDATE`. The final design must be supported by concurrency tests.
+
+### Required tests
+- Normal short document processing.
+- Writer transaction lasting longer than a heartbeat interval.
+- Lease expiration during writer execution.
+- Heartbeat failure and lease loss.
+- Worker termination during extraction.
+- Database error before commit.
+- Retry after an expired job.
+- Duplicate execution for the same job and attachment.
+- Verification that no stale worker can overwrite or commit results after losing its lease.
+
+### Safety and deployment constraints
+- `/opt/uniplex` is the live application directory. Do not modify it during this task.
+- `/opt/uniplex-git` is a separate Git clone used for development and review.
+- Do not restart, replace or rebuild active production containers as part of code review.
+- Do not reprocess real mailbox messages or modify production extraction records.
+- Use isolated test data and a dedicated test database for concurrency tests.
+- Do not perform production deployment without explicit user approval.
+- Report separately: code changes, test results, production readiness and deployment status.
+
+### Current evidence
+- PDF extraction tests using the Git test image reproduced previously observed OCR metrics for two PDFs.
+- XLSX extraction using the Git test image reproduced the previously observed count of 232 non-empty cells.
+- These were isolated extraction tests, not production deployment tests.
+- The queue/writer concurrency issue remains unresolved and requires dedicated testing.
